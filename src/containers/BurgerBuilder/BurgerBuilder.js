@@ -1,9 +1,13 @@
 import React, { Component, Fragment } from 'react'
 
-import Burger from '../../components/Burger/Burger'
-import BuildControls from '../../components/Burger/BuildControls/BuildControls'
-import Modal from '../../components/UI/Modal/Modal'
-import OrderSummary from '../../components/Burger/OrderSummary/OrderSummary'
+import Burger from '../../components/Burger/Burger';
+import BuildControls from '../../components/Burger/BuildControls/BuildControls';
+import Modal from '../../components/UI/Modal/Modal';
+import OrderSummary from '../../components/Burger/OrderSummary/OrderSummary';
+import axios_orders from '../../axios-orders';
+import withErrorHandler from '../../containers/withErrorHandler/withErrorHandler'
+import Spinner from '../../components/UI/Spinner/Spinner'
+import axios from 'axios';
 
 const INGREDIENT_PRICES = {
 	salad: 0.5,
@@ -14,15 +18,19 @@ const INGREDIENT_PRICES = {
 
 class BurgerBuilder extends Component {
 	state = {
-		ingredients: {
-			salad: 0,
-			bacon: 0,
-			cheese: 0,
-			meat: 0
-		},
+		ingredients: null,
 		totalPrice: 4,
 		purchaseable: false,
-		purchasint: false
+		purchasint: false,
+		loading: false
+	}
+
+	componentDidMount() {
+		axios.get('https://react-my-burger-c654e.firebaseio.com/ingredients.json')
+			.then(res => {
+				this.setState({ ingredients: res.data })
+			})
+			.catch (err => {})
 	}
 
 	updatePurchaseState(ingredients) {
@@ -65,15 +73,32 @@ class BurgerBuilder extends Component {
 	}
 
 	purchaseHandler = _ => {
-		this.setState({purchasing: true})
+		this.setState({ purchasing: true })
 	}
 
 	purchaseCancelHandler = _ => {
-		this.setState({purchasing: false})
+		this.setState({ purchasing: false })
 	}
 
 	purchaseContinueHandler = _ => {
-		alert('You continue!')
+		this.setState({ loading: true });
+		const order = {
+			ingredients: this.state.ingredients,
+			price: this.state.totalPrice,
+			customer: {
+				name: 'Mathis Bois',
+				address: {
+					street: '11 rue de la treille',
+					zipCode: '41351',
+					country: 'France'
+				},
+				email: 'test@test.com'
+			},
+			deliveryMethods: 'fatest'
+		}
+		axios_orders.post('/orders.json', order)
+			.then(_ => this.setState({ loading: false, purchasing: false }))
+			.catch(_ => this.setState({ loading: false, purchasing: false }));
 	}
 
 	render() {
@@ -83,27 +108,45 @@ class BurgerBuilder extends Component {
 		for (let key in disabledInfo) {
 			disabledInfo[key] = disabledInfo[key] <= 0;
 		}
+
+		let orderSummary = null;
+		let burger = <Spinner />;
+
+		if (this.state.ingredients) {
+			burger = (
+				<Fragment>
+					<Burger ingredients={this.state.ingredients} />
+					<BuildControls
+						ingredientsAdded={this.AddIngredIentHandler}
+						ingredientsRemoved={this.RemoveIngredIentHandler}
+						disabled={disabledInfo}
+						purchaseable={this.state.purchaseable}
+						ordered={this.purchaseHandler}
+						price={this.state.totalPrice} />
+				</Fragment>
+			);
+			orderSummary = (
+				<OrderSummary
+					ingredients={this.state.ingredients}
+					price={this.state.totalPrice}
+					purchaseCancelled={this.purchaseCancelHandler}
+					purchaseContinue={this.purchaseContinueHandler} />
+			)
+		}
+
+		if (this.state.loading) {
+			orderSummary = <Spinner />;
+		}
+
 		return (
 			<Fragment>
 				<Modal show={this.state.purchasing} modalClosed={this.purchaseCancelHandler}>
-					<OrderSummary
-						ingredients={this.state.ingredients}
-						price={this.state.totalPrice}
-						purchaseCancelled={this.purchaseCancelHandler}
-						purchaseContinue={this.purchaseContinueHandler}/>
+					{orderSummary}
 				</Modal>
-				<Burger ingredients={this.state.ingredients} />
-				<BuildControls
-					ingredientsAdded={this.AddIngredIentHandler}
-					ingredientsRemoved={this.RemoveIngredIentHandler}
-					disabled={disabledInfo}
-					purchaseable={this.state.purchaseable}
-					ordered={this.purchaseHandler}
-					price={this.state.totalPrice}
-				/>
+				{burger}
 			</Fragment>
 		);
 	}
 }
 
-export default BurgerBuilder
+export default withErrorHandler(BurgerBuilder, axios_orders)
