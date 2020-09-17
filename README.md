@@ -8,10 +8,18 @@ A little exercise on [react](https://fr.reactjs.org/) with [redux](https://redux
 
 ## Usage
 
+### Requirements
+
+- node  12.16.3
+- npm   6.14.4
+
 ``` bash
 npm install
 npm start
 ```
+You can then connect to the site at [http://localhost:3000/](http://localhost:3000/)
+
+> The server run in development mode.
 
 ## Stack
 
