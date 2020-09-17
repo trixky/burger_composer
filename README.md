@@ -10,8 +10,8 @@ A little exercise on [react](https://fr.reactjs.org/) with [redux](https://redux
 
 ### Requirements
 
-- node  12.16.3
-- npm   6.14.4
+- node  12.18.2
+- npm   6.14.5
 
 ``` bash
 npm install
